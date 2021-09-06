@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,9 +19,6 @@ package org.apache.avro;
 
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import org.apache.avro.AvroTypeException;
-import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.io.Decoder;
@@ -81,7 +78,7 @@ public class ExtendedJsonDecoder extends ParsingDecoder
     }
 
     private static Symbol getSymbol(Schema schema) {
-        if (null == schema) {
+        if (schema == null) {
             throw new NullPointerException("Schema cannot be null!");
         }
         return new JsonGrammarGenerator().generate(schema);
@@ -114,7 +111,6 @@ public class ExtendedJsonDecoder extends ParsingDecoder
      *
      * @param in The String to read from. Cannot be null.
      * @return this JsonDecoder
-     * @throws IOException
      */
     public ExtendedJsonDecoder configure(String in) throws IOException {
         if (null == in) {
@@ -786,6 +782,15 @@ public class ExtendedJsonDecoder extends ParsingDecoder
     }
 
     private static Field findField(Schema schema, String name) {
+        if (schema.isNullable()) {
+            return null;
+        }
+        if (Type.ARRAY == schema.getType()) {
+            return findField(schema.getElementType(), name);
+        }
+        if (Type.MAP == schema.getType()) {
+            return findField(schema.getValueType(), name);
+        }
         if (schema.getField(name) != null) {
             return schema.getField(name);
         }
@@ -794,20 +799,28 @@ public class ExtendedJsonDecoder extends ParsingDecoder
 
         for (Field field : schema.getFields()) {
             Schema fieldSchema = field.schema();
-            if (Type.RECORD.equals(fieldSchema.getType())) {
-                foundField = findField(fieldSchema, name);
-            } else if (Type.ARRAY.equals(fieldSchema.getType())) {
-                foundField = findField(fieldSchema.getElementType(), name);
-            } else if (Type.MAP.equals(fieldSchema.getType())) {
-                foundField = findField(fieldSchema.getValueType(), name);
-            }
 
+            switch (fieldSchema.getType()) {
+                case RECORD:
+                case ARRAY:
+                case MAP:
+                    foundField = findField(fieldSchema, name);
+                    break;
+                case UNION:
+                    for (Schema unionSchema : fieldSchema.getTypes()) {
+                        foundField = findField(unionSchema, name);
+                        if (foundField != null) {
+                            return foundField;
+                        }
+                    }
+                    break;
+            }
             if (foundField != null) {
                 return foundField;
             }
         }
 
-        return foundField;
+        return null;
     }
 }
 
