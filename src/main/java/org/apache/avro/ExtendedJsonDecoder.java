@@ -143,6 +143,7 @@ public class ExtendedJsonDecoder extends ParsingDecoder
     public boolean readBoolean() throws IOException {
         advance(Symbol.BOOLEAN);
         JsonToken t = in.getCurrentToken();
+
         if (t == JsonToken.VALUE_TRUE || t == JsonToken.VALUE_FALSE) {
             in.nextToken();
             return t == JsonToken.VALUE_TRUE;
@@ -746,7 +747,8 @@ public class ExtendedJsonDecoder extends ParsingDecoder
     }
 
     private AvroTypeException error(String type) {
-        return new AvroTypeException("Expected " + type +
+        String fieldName = in.getParsingContext().getCurrentName();
+        return new AvroTypeException("Field " + fieldName + ". Expected " + type +
                 ". Got " + in.getCurrentToken());
     }
 
