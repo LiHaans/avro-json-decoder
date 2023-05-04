@@ -61,8 +61,14 @@ public class ExtendedJsonDecoderTest extends TestCase {
                         + "{\"type\":{\"type\":\"array\",\"items\":\"int\"},\"name\":\"a\"}"
                         + "]}";
         Schema ws = new Schema.Parser().parse(w);
-        String data = "{\"a\":[1,2],\"l\":100}{\"l\": \"aaa\", \"a\":[1,2]}";
+        String data = "{\"a\":[1,2],\"l\":12}{\"l\": \"aaa\", \"a\":[1,2]}";
+
+        readRecord(w, data);
+
         ExtendedJsonDecoder in = new ExtendedJsonDecoder(ws, data);
+
+
+
         Assert.assertEquals(100, in.readLong());
         in.skipArray();
         Assert.assertEquals(200, in.readLong());
